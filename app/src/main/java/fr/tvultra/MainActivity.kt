@@ -67,7 +67,7 @@ private fun TvUltraApp() {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var session by remember { mutableStateOf<XtreamSession?>(null) }
-    var section by remember { mutableStateOf("TV en direct") }
+    var section by remember { mutableStateOf("Accueil") }
     var live by remember { mutableStateOf<List<TvItem>>(emptyList()) }
     var movies by remember { mutableStateOf<List<TvItem>>(emptyList()) }
     var series by remember { mutableStateOf<List<TvItem>>(emptyList()) }
@@ -80,7 +80,7 @@ private fun TvUltraApp() {
                 Column(Modifier.width(185.dp).fillMaxHeight()) {
                     Text("TV ULTRA", color = Blue, fontSize = 27.sp, fontWeight = FontWeight.Black)
                     Spacer(Modifier.height(26.dp))
-                    listOf("Connexion", "TV en direct", "Films", "Séries").forEach { item ->
+                    listOf("Accueil", "TV en direct", "Films", "Séries", "Connexion").forEach { item ->
                         Surface(
                             color = if ((item == "Connexion" && session == null) || (item == section && session != null)) Blue.copy(alpha = 0.22f) else Color.Transparent,
                             shape = RoundedCornerShape(10.dp),
@@ -99,7 +99,7 @@ private fun TvUltraApp() {
                 Spacer(Modifier.width(26.dp))
                 Column(Modifier.fillMaxSize()) {
                     Text(
-                        when { session == null -> "Bienvenue sur TV Ultra"; section == "TV en direct" -> "Télévision en direct"; section == "Films" -> "Films"; else -> "Séries" },
+                        when { session == null || section == "Accueil" -> "Bienvenue sur TV Ultra"; section == "TV en direct" -> "Télévision en direct"; section == "Films" -> "Films"; section == "Séries" -> "Séries"; else -> "Connexion" },
                         fontSize = 29.sp, fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(8.dp))
@@ -129,7 +129,7 @@ private fun TvUltraApp() {
                                                     live = data.second
                                                     movies = data.third
                                                     series = data.fourth
-                                                    section = "TV en direct"
+                                                    section = "Accueil"
                                                     message = "Connexion réussie • ${live.size} chaînes • ${movies.size} films • ${series.size} séries"
                                                 }.onFailure {
                                                     message = "Connexion impossible : ${it.message ?: "vérifie l’adresse et les identifiants"}"
@@ -140,6 +140,44 @@ private fun TvUltraApp() {
                                     enabled = !loading,
                                     modifier = Modifier.height(48.dp).focusable()
                                 ) { Text(if (loading) "Connexion…" else "Se connecter") }
+                            }
+                        }
+                    } else if (section == "Accueil") {
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(22.dp)) {
+                            item {
+                                Text("Reprendre votre découverte", color = Muted, fontSize = 14.sp)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Films et séries de votre abonnement", fontSize = 21.sp, fontWeight = FontWeight.Bold)
+                            }
+                            item {
+                                Text("Derniers films", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(10.dp))
+                                if (movies.isEmpty()) Text("Aucun film reçu pour le moment.", color = Muted)
+                                else LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(movies.take(12)) { item ->
+                                        PosterCard(item = item, onClick = { section = "Films" })
+                                    }
+                                }
+                            }
+                            item {
+                                Text("Dernières séries", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(10.dp))
+                                if (series.isEmpty()) Text("Aucune série reçue pour le moment.", color = Muted)
+                                else LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(series.take(12)) { item ->
+                                        PosterCard(item = item, onClick = { section = "Séries" })
+                                    }
+                                }
+                            }
+                            item {
+                                Text("TV en direct", fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(10.dp))
+                                if (live.isEmpty()) Text("Aucune chaîne reçue pour le moment.", color = Muted)
+                                else LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(live.take(12)) { item ->
+                                        PosterCard(item = item, onClick = { section = "TV en direct" })
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -161,7 +199,7 @@ private fun TvUltraApp() {
                                                 Toast.makeText(context, "Aucun lecteur vidéo compatible trouvé.", Toast.LENGTH_LONG).show()
                                             }
                                         } else {
-                                            Toast.makeText(context, if (item.kind == "series") "Séries : lecture des épisodes à ajouter dans la prochaine étape." else "Sélectionne un contenu.", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, if (item.kind == "series") "La navigation des épisodes sera ajoutée ensuite." else "Sélectionne un contenu.", Toast.LENGTH_SHORT).show()
                                         }
                                     }.focusable()) {
                                         Column {
@@ -177,7 +215,7 @@ private fun TvUltraApp() {
                                     }
                                 }
                             }
-                            Text("Sélectionne un contenu pour ouvrir la lecture. Les séries nécessitent encore l’écran des épisodes.", color = Muted, fontSize = 12.sp)
+                            Text("Sélectionne un contenu pour ouvrir la lecture. La navigation des épisodes de séries reste à ajouter.", color = Muted, fontSize = 12.sp)
                         }
                     }
                 }
@@ -248,5 +286,33 @@ private fun parseItemsArray(jsonText: String, kind: String): List<TvItem> {
             categoryId = obj.optString("category_id", ""),
             kind = kind
         )
+    }
+}
+
+
+@Composable
+private fun PosterCard(item: TvItem, onClick: () -> Unit) {
+    Surface(
+        color = Panel,
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.width(145.dp).height(210.dp).clickable(onClick = onClick).focusable()
+    ) {
+        Column {
+            if (item.poster.isNotBlank()) {
+                AsyncImage(
+                    model = item.poster,
+                    contentDescription = item.title,
+                    modifier = Modifier.fillMaxWidth().height(158.dp).background(Color(0xFF1B2940))
+                )
+            } else {
+                Box(
+                    Modifier.fillMaxWidth().height(158.dp).background(Color(0xFF1B2940)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("TV ULTRA", color = Blue, fontWeight = FontWeight.Bold)
+                }
+            }
+            Text(item.title, Modifier.padding(8.dp), fontWeight = FontWeight.SemiBold, fontSize = 12.sp, maxLines = 2)
+        }
     }
 }
