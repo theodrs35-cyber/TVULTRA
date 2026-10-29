@@ -271,7 +271,16 @@ private fun loadXtream(s:XtreamSession):CatalogResult{
 }
 private fun loadEpg(s:XtreamSession,streamId:String):List<EpgProgram>{
  val q="username="+enc(s.username)+"&password="+enc(s.password)+"&action=get_short_epg&stream_id="+enc(streamId)+"&limit=20"
- val obj=JSONArray(httpGet(s.server.trimEnd('/')+"/player_api.php?"+q));return (0 until obj.length()).mapNotNull{i->val p=obj.optJSONObject(i)?:return@mapNotNull null;val ts=p.optString("start_timestamp","0").toLongOrNull()?:0L;val duration=((p.optString("stop_timestamp","0").toLongOrNull()?:ts)-ts).coerceAtLeast(0)/60;EpgProgram(p.optString("title","Programme"),p.optString("start",""),p.optString("end",""),p.optString("description",""),ts,duration.toInt().coerceAtLeast(1))}
+ val raw=httpGet(s.server.trimEnd('/')+"/player_api.php?"+q)
+ val root=JSONObject(raw)
+ val arr=root.optJSONArray("epg_list") ?: root.optJSONArray("epg") ?: JSONArray()
+ return (0 until arr.length()).mapNotNull{i->
+  val p=arr.optJSONObject(i)?:return@mapNotNull null
+  val ts=p.optString("start_timestamp","0").toLongOrNull()?:0L
+  val endTs=p.optString("stop_timestamp","0").toLongOrNull()?:ts
+  val duration=((endTs-ts).coerceAtLeast(0)/60).toInt().coerceAtLeast(1)
+  EpgProgram(p.optString("title","Programme"),p.optString("start",""),p.optString("end",""),p.optString("description",""),ts,duration)
+ }
 }
 private fun parseCategories(text:String):List<TvCategory>{
  val a=JSONArray(text);return (0 until a.length()).mapNotNull{i->val o=a.optJSONObject(i)?:return@mapNotNull null;val id=o.optString("category_id","");if(id.isBlank()||id=="null")null else TvCategory(id,o.optString("category_name","Autres"))}
