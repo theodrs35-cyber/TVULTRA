@@ -268,7 +268,7 @@ private fun httpGet(address: String): String {
 
 private fun parseItemsArray(jsonText: String, kind: String): List<TvItem> {
     val array = JSONArray(jsonText)
-    return (0 until minOf(array.length(), 250)).mapNotNull { index ->
+    return (0 until array.length()).mapNotNull { index ->
         val obj = array.optJSONObject(index) ?: return@mapNotNull null
         val id = obj.optString(if (kind == "series") "series_id" else "stream_id", "")
         if (id.isBlank() || id == "null") return@mapNotNull null
