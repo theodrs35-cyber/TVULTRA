@@ -109,9 +109,9 @@ private fun TvUltraApp() {
                         Surface(color = Panel, shape = RoundedCornerShape(18.dp), modifier = Modifier.widthIn(max = 650.dp).fillMaxWidth()) {
                             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text("Connexion Xtream Codes", color = Blue, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                                OutlinedTextField(server, { server = it }, label = { Text("Adresse du serveur") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(username, { username = it }, label = { Text("Nom d’utilisateur") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                                OutlinedTextField(password, { password = it }, label = { Text("Mot de passe") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth())
+                                OutlinedTextField(server, { server = it }, label = { Text("Adresse du serveur") }, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedLabelColor = Blue, unfocusedLabelColor = Muted, focusedBorderColor = Blue, unfocusedBorderColor = Muted, cursorColor = Blue))
+                                OutlinedTextField(username, { username = it }, label = { Text("Nom d’utilisateur") }, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedLabelColor = Blue, unfocusedLabelColor = Muted, focusedBorderColor = Blue, unfocusedBorderColor = Muted, cursorColor = Blue))
+                                OutlinedTextField(password, { password = it }, label = { Text("Mot de passe") }, singleLine = true, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedLabelColor = Blue, unfocusedLabelColor = Muted, focusedBorderColor = Blue, unfocusedBorderColor = Muted, cursorColor = Blue))
                                 Button(
                                     onClick = {
                                         if (server.isBlank() || username.isBlank() || password.isBlank()) {
