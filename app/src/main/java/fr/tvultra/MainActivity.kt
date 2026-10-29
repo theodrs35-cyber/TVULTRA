@@ -87,7 +87,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
      Text("TV ULTRA",color=Cyan,fontSize=26.sp,fontWeight=FontWeight.Black)
      Text("CINÉMA • SÉRIES • LIVE",color=Muted,fontSize=9.sp)
      Spacer(Modifier.height(24.dp))
-     listOf("Accueil","TV en direct","Guide TV","Films","Séries","Favoris","Recherche","Paramètres","Connexion").forEach{label->
+     listOf("Accueil","TV en direct","Guide TV","Replay","Films","Séries","Favoris","Recherche","Paramètres","Connexion").forEach{label->
       Surface(color=if(section==label)Blue else Color.Transparent,shape=RoundedCornerShape(10.dp),modifier=Modifier.fillMaxWidth().padding(vertical=3.dp).clickable{if(label=="Connexion"||session!=null){section=label;category="";if(label!="Séries")selectedSeries=null}}.focusable()){
        Text(label,Modifier.padding(horizontal=13.dp,vertical=12.dp),color=if(section==label)Color.White else Muted,fontSize=14.sp,fontWeight=if(section==label)FontWeight.Bold else FontWeight.Medium)
       }
@@ -99,7 +99,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
      if(section!="Lecteur"){
       Row(verticalAlignment=Alignment.CenterVertically){
        Column(Modifier.weight(1f)){
-        Text(when(section){"Accueil"->"Votre univers, en un clic";"TV en direct"->"Télévision en direct";"Films"->"Tous vos films";"Séries"->selectedSeries?.title?:"Vos séries";"Favoris"->"Vos favoris";"Recherche"->"Rechercher";"Guide TV"->"Guide TV • programmes et replay";"Paramètres"->"Personnaliser TV Ultra";else->"Connexion au service"},fontSize=26.sp,fontWeight=FontWeight.Bold)
+        Text(when(section){"Accueil"->"Votre univers, en un clic";"TV en direct"->"Télévision en direct";"Films"->"Tous vos films";"Séries"->selectedSeries?.title?:"Vos séries";"Favoris"->"Vos favoris";"Recherche"->"Rechercher";"Guide TV"->"Guide TV • programmes et replay";"Replay"->"Rattrapage des programmes";"Paramètres"->"Personnaliser TV Ultra";else->"Connexion au service"},fontSize=26.sp,fontWeight=FontWeight.Bold)
         Text(if(session==null)message else live.size.toString()+" chaînes • "+movies.size+" films • "+series.size+" séries",color=Muted,fontSize=12.sp)
        }
        if(session!=null)Text("● CONNECTÉ",color=Cyan,fontSize=11.sp,fontWeight=FontWeight.Bold)
@@ -160,6 +160,15 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
          else if(epg.isEmpty())Text("Aucun guide disponible pour cette chaîne. Ton fournisseur ne transmet peut-être pas les données EPG.",color=Muted)
          LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) { items(epg){program->Surface(color=Panel,shape=RoundedCornerShape(10.dp)){Column(Modifier.fillMaxWidth().padding(12.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(program.start+" – "+program.end,color=Cyan,fontSize=11.sp);Text(program.title,fontSize=15.sp,fontWeight=FontWeight.Bold);if(program.description.isNotBlank())Text(program.description,color=Muted,fontSize=12.sp);if(selectedLive?.archive==true&&program.startTimestamp>0)Button(onClick={val ch=selectedLive!!;val active=session!!;val start=java.time.Instant.ofEpochSecond(program.startTimestamp).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd:HH-mm"));playing=ch.copy(id=ch.id,kind="replay",extension="ts");section="Lecteur";replayUrlOverride=active.server.trimEnd('/')+"/timeshift/"+enc(active.username)+"/"+enc(active.password)+"/"+program.durationMinutes+"/"+start+"/"+ch.id+".ts"}){Text("▶ Replay")}}}}}
         }
+       }
+      }
+      section=="Replay"->{
+       val replayChannels=live.filter{it.archive && !hiddenGroups.contains(it.categoryId)}
+       Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(10.dp)){
+        Text("Chaînes compatibles avec le replay ("+replayChannels.size+")",fontSize=18.sp,fontWeight=FontWeight.Bold)
+        Text("Choisis une chaîne pour consulter son guide et relancer un programme passé. Le replay dépend de ton fournisseur.",color=Muted,fontSize=12.sp)
+        if(replayChannels.isEmpty())Text("Aucune chaîne n’annonce le replay dans les informations reçues. Vérifie que ton fournisseur active le rattrapage.",color=Muted)
+        CatalogRows(replayChannels,favorites,{favorites=favorites.toggle(it)},{channel->selectedLive=channel;epgLoading=true;scope.launch{val result=withContext(Dispatchers.IO){runCatching{loadEpg(session!!,channel.id)}};epg=result.getOrDefault(emptyList());epgLoading=false;section="Guide TV"}})
        }
       }
       section=="Paramètres"->{
