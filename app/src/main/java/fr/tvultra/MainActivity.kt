@@ -168,7 +168,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
         Text("Chaînes compatibles avec le replay ("+replayChannels.size+")",fontSize=18.sp,fontWeight=FontWeight.Bold)
         Text("Choisis une chaîne pour consulter son guide et relancer un programme passé. Le replay dépend de ton fournisseur.",color=Muted,fontSize=12.sp)
         if(replayChannels.isEmpty())Text("Aucune chaîne n’annonce le replay dans les informations reçues. Vérifie que ton fournisseur active le rattrapage.",color=Muted)
-        CatalogRows(replayChannels,favorites,{favorites=favorites.toggle(it)},{channel->selectedLive=channel;epgLoading=true;scope.launch{val result=withContext(Dispatchers.IO){runCatching{loadEpg(session!!,channel.id)}};epg=result.getOrDefault(emptyList());epgLoading=false;section="Guide TV"}})
+        LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp)){items(replayChannels,key={key(it)}){channel->Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Panel).clickable{selectedLive=channel;epgLoading=true;scope.launch{val result=withContext(Dispatchers.IO){runCatching{loadEpg(session!!,channel.id)}};epg=result.getOrDefault(emptyList());epgLoading=false;section="Guide TV"}}.focusable().padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){Text("▶",color=Cyan);Text(channel.title,Modifier.weight(1f),fontWeight=FontWeight.Bold);Text("Voir le guide →",color=Muted,fontSize=11.sp)}}}
        }
       }
       section=="Paramètres"->{
