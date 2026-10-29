@@ -125,10 +125,10 @@ private fun TvUltraApp() {
                                                 }
                                                 loading = false
                                                 result.onSuccess { data ->
-                                                    session = data.first
-                                                    live = data.second
-                                                    movies = data.third
-                                                    series = data.fourth
+                                                    session = data.session
+                                                    live = data.live
+                                                    movies = data.movies
+                                                    series = data.series
                                                     section = "Accueil"
                                                     message = "Connexion réussie • ${live.size} chaînes • ${movies.size} films • ${series.size} séries"
                                                 }.onFailure {
