@@ -80,6 +80,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
  val prefs = remember { context.getSharedPreferences("tvultra_ui", android.content.Context.MODE_PRIVATE) }
  var hiddenGroups by remember { mutableStateOf(prefs.getStringSet("hidden_live_groups", emptySet())?.toSet() ?: emptySet()) }
  var groupOrder by remember { mutableStateOf(prefs.getString("live_group_order", "")!!.split("|").filter { it.isNotBlank() }) }
+ var sortChannelsByName by remember { mutableStateOf(prefs.getBoolean("sort_live_by_name", false)) }
  MaterialTheme{
   Surface(Modifier.fillMaxSize(),color=Bg,contentColor=Color.White){
    Row(Modifier.fillMaxSize().padding(18.dp),horizontalArrangement=Arrangement.spacedBy(20.dp)){
@@ -149,7 +150,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
        item{CatalogSection("Séries TV récemment ajoutées",series.takeLast(20),favorites,{favorites=favorites.toggle(it)},{selectedSeries=it;episodes=emptyList();section="Séries";loadEpisodes(it,session,scope){episodes=it}})}
        item{CatalogSection("Télévision en direct",live.take(20),favorites,{favorites=favorites.toggle(it)},{playing=it;section="Lecteur"})}
       }
-      section=="TV en direct"->{CategoryChips(liveCats.filter{!hiddenGroups.contains(it.id)}.sortedBy { groupOrder.indexOf(it.id).let { n -> if(n<0) Int.MAX_VALUE else n } },category){category=it};Spacer(Modifier.height(10.dp));CatalogRows(live.filter{(category.isBlank()||it.categoryId==category)&&!hiddenGroups.contains(it.categoryId)},favorites,{favorites=favorites.toggle(it)},{playing=it;section="Lecteur"})}
+      section=="TV en direct"->{CategoryChips(liveCats.filter{!hiddenGroups.contains(it.id)}.sortedBy { groupOrder.indexOf(it.id).let { n -> if(n<0) Int.MAX_VALUE else n } },category){category=it};Spacer(Modifier.height(10.dp));CatalogRows((if(sortChannelsByName)live.sortedBy{it.title.lowercase()} else live).filter{(category.isBlank()||it.categoryId==category)&&!hiddenGroups.contains(it.categoryId)},favorites,{favorites=favorites.toggle(it)},{playing=it;section="Lecteur"})}
       section=="Guide TV"->{
        Row(Modifier.fillMaxSize(),horizontalArrangement=Arrangement.spacedBy(12.dp)){
         LazyColumn(Modifier.width(300.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){items(live.filter{!hiddenGroups.contains(it.categoryId)},key={key(it)}){channel->Surface(color=if(selectedLive?.id==channel.id)Blue else Panel,shape=RoundedCornerShape(10.dp),modifier=Modifier.fillMaxWidth().clickable{selectedLive=channel;epgLoading=true;scope.launch{val result=withContext(Dispatchers.IO){runCatching{loadEpg(session!!,channel.id)}};epg=result.getOrDefault(emptyList());epgLoading=false}}.focusable()){Text(channel.title,Modifier.padding(10.dp),fontSize=12.sp,maxLines=2)}}}
@@ -163,7 +164,7 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
        }
       }
       section=="Replay"->{
-       val replayChannels=live.filter{it.archive && !hiddenGroups.contains(it.categoryId)}
+       val replayChannels=(if(sortChannelsByName)live.sortedBy{it.title.lowercase()} else live).filter{it.archive && !hiddenGroups.contains(it.categoryId)}
        Column(Modifier.fillMaxSize(),verticalArrangement=Arrangement.spacedBy(10.dp)){
         Text("Chaînes compatibles avec le replay ("+replayChannels.size+")",fontSize=18.sp,fontWeight=FontWeight.Bold)
         Text("Choisis une chaîne pour consulter son guide et relancer un programme passé. Le replay dépend de ton fournisseur.",color=Muted,fontSize=12.sp)
@@ -174,6 +175,8 @@ class MainActivity:ComponentActivity(){override fun onCreate(savedInstanceState:
       section=="Paramètres"->{
        LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)){
         item{Text("Personnaliser les groupes de chaînes",fontSize=20.sp,fontWeight=FontWeight.Bold);Text("Masque les groupes inutiles et déplace-les avec les flèches. Les réglages sont conservés sur cet appareil.",color=Muted,fontSize=12.sp)}
+        item{Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Panel).padding(10.dp),verticalAlignment=Alignment.CenterVertically){Checkbox(checked=sortChannelsByName,onCheckedChange{checked->sortChannelsByName=checked;prefs.edit().putBoolean("sort_live_by_name",checked).apply()});Text("Trier les chaînes par nom",fontSize=13.sp)}}
+        item{Button(onClick={hiddenGroups=emptySet();groupOrder=emptyList();prefs.edit().remove("hidden_live_groups").remove("live_group_order").apply()}){Text("Réinitialiser les groupes")}}
         items(liveCats.sortedBy { groupOrder.indexOf(it.id).let { n -> if(n<0) Int.MAX_VALUE else n } },key={it.id}){group->Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(Panel).padding(10.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){Checkbox(checked=!hiddenGroups.contains(group.id),onCheckedChange={checked->hiddenGroups=if(checked)hiddenGroups-group.id else hiddenGroups+group.id;prefs.edit().putStringSet("hidden_live_groups",hiddenGroups).apply()});Text(group.name,Modifier.weight(1f),fontSize=13.sp);Text("↑",Modifier.clickable{val current=(groupOrder.filter{it in liveCats.map{c->c.id}}+liveCats.map{it.id}.filter{it !in groupOrder}).toMutableList();val i=current.indexOf(group.id);if(i>0){val t=current[i-1];current[i-1]=current[i];current[i]=t;groupOrder=current;prefs.edit().putString("live_group_order",current.joinToString("|")).apply()}}.padding(8.dp).focusable(),color=Cyan,fontSize=20.sp);Text("↓",Modifier.clickable{val current=(groupOrder.filter{it in liveCats.map{c->c.id}}+liveCats.map{it.id}.filter{it !in groupOrder}).toMutableList();val i=current.indexOf(group.id);if(i>=0&&i<current.lastIndex){val t=current[i+1];current[i+1]=current[i];current[i]=t;groupOrder=current;prefs.edit().putString("live_group_order",current.joinToString("|")).apply()}}.padding(8.dp).focusable(),color=Cyan,fontSize=20.sp)}}
         item{Text("Replay et EPG dépendent des fonctions activées par ton fournisseur IPTV.",color=Muted,fontSize=12.sp)}
        }
