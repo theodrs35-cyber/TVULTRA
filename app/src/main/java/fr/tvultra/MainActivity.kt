@@ -200,7 +200,6 @@ private fun loadXtream(session: XtreamSession): CatalogResult {
     val auth = JSONObject(httpGet("$base/player_api.php?$query"))
     val userInfo = auth.optJSONObject("user_info")
     require(userInfo != null && userInfo.optString("auth") != "0") { "identifiants refusés par le serveur" }
-    val liveJson = JSONObject(httpGet("$base/player_api.php?$query&action=get_live_streams"))
     return CatalogResult(
         session,
         parseItemsArray(httpGet("$base/player_api.php?$query&action=get_live_streams"), "live"),
